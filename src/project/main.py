@@ -7,7 +7,6 @@ from project.chatgpt import ChatGPT
 
 
 def main():
-    LOGGER.enable(False)
     root = akp.root.get_project_root()
 
     driver_user_data = root / "browser/user_data1"
@@ -47,7 +46,6 @@ def main():
         pass
     finally:
         if driver:
-            driver.driver.delete_all_cookies()
             driver.quit()
 
 

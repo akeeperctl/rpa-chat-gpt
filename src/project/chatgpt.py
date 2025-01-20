@@ -34,8 +34,9 @@ class ChatGPT:
             self._fetch_saved = False
 
         def _is_ready(self):
-            if self.driver_shell.get_current_link() != self.gpt.main_page:
-                LOGGER.warning("Драйвер не находится на странице ИИ-ассистента!")
+            link = self.driver_shell.get_current_link()
+            if self.gpt.main_page not in link:
+                LOGGER.warning(f"Драйвер не находится на странице ИИ-ассистента! Тек. страница: {link}")
                 self.open_main_page()
                 time.sleep(1)
 
@@ -50,30 +51,32 @@ class ChatGPT:
                 except NoSuchElementException:
                     pass
 
-        def _pass_request_forbidden(self):
+        def _pass_need_login(self):
             login_url = "https://auth.openai.com/api/accounts/login?login_challenge="
             if login_url in self.driver_shell.get_current_link():
                 raise Exception("Требуется авторизация. Попробуйте очистить куки.")
 
-        # def _save_fetch(self):
-        #     if not self._fetch_saved:
-        #         self.driver_shell.driver.execute_script("""
-        #             window.originalFetch = window.fetch;
-        #         """)
-        #         self._fetch_saved = True
-        #
-        # def _enable_fetch(self, enable):
-        #     if enable:
-        #         self.driver_shell.driver.execute_script("""
-        #             window.fetch = window.originalFetch;
-        #         """)
-        #     else:
-        #         self.driver_shell.driver.execute_script("""
-        #             window.fetch = function() {
-        #                 console.log('Fetch is disabled');
-        #                 return new Promise(() => {}); // Заглушка для fetch
-        #             };
-        #         """)
+        def authorize(self):
+            email_input = self.driver_shell.find_element(by=By.XPATH, value="//input[contains(@class, 'email-input')]")
+            email_input.click()
+            email_input.send_keys("my_yahoo_mail")
+
+            continue_btn_sel = "//button[contains(@class, 'continue-btn)]"
+            continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
+            continue_btn.click()
+
+            password_input = self.driver_shell.find_element(by=By.XPATH, value="//input[@id='password']", seconds=15)
+            password_input.click()
+            password_input.send_keys("my_pass")
+
+            continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
+            continue_btn.click()
+
+            try:
+                need_email_code = self.driver_shell.find_element(by=By.XPATH, value="//h1[text()='Проверьте свои входящие']")
+                #TODO
+            except NoSuchElementException:
+                pass
 
         def open_main_page(self, timer=30):
             """
@@ -111,7 +114,7 @@ class ChatGPT:
         def send_prompt(self, value: str):
             self._is_ready()
             self._pass_thanks_window()
-            self._pass_request_forbidden()
+            self._pass_need_login()
             #self._enable_fetch(True)
 
             text_area = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.text_area_sel)
@@ -124,7 +127,7 @@ class ChatGPT:
         def get_last_response(self, start_delay=5, timer=30):
             self._is_ready()
             self._pass_thanks_window()
-            self._pass_request_forbidden()
+            self._pass_need_login()
             #self._enable_fetch(True)
 
             current_timer = timer

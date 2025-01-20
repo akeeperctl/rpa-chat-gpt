@@ -2,7 +2,7 @@ import time
 import traceback
 from typing import Optional
 
-from selenium.common import NoSuchElementException
+from selenium.common import NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
@@ -10,20 +10,74 @@ from akp.driver_shell import DriverShell
 from akp.logger import LOGGER
 
 
+class ChatGPTConfiguration:
+    def __init__(self, values: dict):
+        self.main_page = values["main_page"]
+        self.text_area_sel = values["text_area_sel"]
+        self.send_button_sel = values["send_button_sel"]
+        self.stop_button_sel = values["stop_button_sel"]
+        self.assistant_msg_sel = values["assistant_msg_sel"]
+        self.thanks_dialog_sel = values["thanks_dialog_sel"]
+
+
+class ChatGPTPersonalization:
+
+    def __init__(self, values: dict):
+        self.user_name = values["user_name"]
+        self.user_position = values["user_position"]
+        self.ai_response_length = values["ai_response_length"]
+        self.ai_character = values["ai_character"]
+        self.ai_job = values["ai_job"]
+
+        self.prompt = f"""
+            [Это настройки для диалога с тобой. 
+            После закрывающейся квадратной скобки идет моё нормальное сообщение. 
+            Отвечай на него естественно.
+            Моё имя - {self.user_name};
+            Моя должность - {self.user_position};
+            Максимальная длина твоего сообщения - {self.ai_response_length} символов;
+            Твой характер общения со мной - {self.ai_character};
+            Твоя задача - {self.ai_job}.]
+        """
+
+
 class ChatGPT:
 
-    def __init__(self, driver_shell: DriverShell.Selenium):
+    def __init__(self, driver_shell: DriverShell.Selenium, enable_personalization: bool):
         self.RPA = self._RPA(driver_shell, self)
         self._current_config = self.get_configs().openai_chatgpt
+        self._current_personalization = self.get_personalizations().default
+        self._personalization_enabled = enable_personalization
+
+    class _Personalizations:
+        default = ChatGPTPersonalization({
+            "user_name": "Даниил",
+            "user_position": "Программист Python",
+            "ai_response_length": 100,
+            "ai_character": "Строгий старший программист",
+            "ai_job": "Помогать советами и подсказывать идеи реализации"
+        })
 
     class _Configurations:
-        openai_chatgpt = {
+
+        # FIXME: нужен хороший VPN, чтобы работал этот конфиг
+        openai_chatgpt = ChatGPTConfiguration({
             "main_page": "https://chatgpt.com/",
             "text_area_sel": "//div[@id='prompt-textarea']",
-            "send_btn_sel": "//button[@data-testid='send-button']",
-            "last_assistant_msg_sel": "//div[@data-message-author-role='assistant']",
+            "send_button_sel": "//button[@data-testid='send-button']",
+            "stop_button_sel": "//button[@data-testid='stop-button']",
+            "assistant_msg_sel": "//div[@data-message-author-role='assistant']",
             "thanks_dialog_sel": "//div[@role='dialog']"
-        }
+        })
+
+        chatapp_chatgpt = ChatGPTConfiguration({
+            "main_page": "https://chatgptchatapp.com/ru",
+            "text_area_sel": "//textarea[@id='chat-input']",
+            "send_button_sel": "//button[@class='btn-send-message']",
+            "stop_button_sel": "//button[@class='btn-stop-response']",
+            "assistant_msg_sel": "//div[@class='chat-box ai-completed']",
+            "thanks_dialog_sel": None
+        })
 
     class _RPA:
 
@@ -56,27 +110,28 @@ class ChatGPT:
             if login_url in self.driver_shell.get_current_link():
                 raise Exception("Требуется авторизация. Попробуйте очистить куки.")
 
-        def authorize(self):
-            email_input = self.driver_shell.find_element(by=By.XPATH, value="//input[contains(@class, 'email-input')]")
-            email_input.click()
-            email_input.send_keys("my_yahoo_mail")
-
-            continue_btn_sel = "//button[contains(@class, 'continue-btn)]"
-            continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
-            continue_btn.click()
-
-            password_input = self.driver_shell.find_element(by=By.XPATH, value="//input[@id='password']", seconds=15)
-            password_input.click()
-            password_input.send_keys("my_pass")
-
-            continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
-            continue_btn.click()
-
-            try:
-                need_email_code = self.driver_shell.find_element(by=By.XPATH, value="//h1[text()='Проверьте свои входящие']")
-                #TODO
-            except NoSuchElementException:
-                pass
+        # def authorize(self):
+        #     email_input = self.driver_shell.find_element(by=By.XPATH, value="//input[contains(@class, 'email-input')]")
+        #     email_input.click()
+        #     email_input.send_keys("my_yahoo_mail")
+        #
+        #     continue_btn_sel = "//button[contains(@class, 'continue-btn)]"
+        #     continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
+        #     continue_btn.click()
+        #
+        #     password_input = self.driver_shell.find_element(by=By.XPATH, value="//input[@id='password']", seconds=15)
+        #     password_input.click()
+        #     password_input.send_keys("my_pass")
+        #
+        #     continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
+        #     continue_btn.click()
+        #
+        #     try:
+        #         need_email_code = self.driver_shell.find_element(by=By.XPATH,
+        #                                                          value="//h1[text()='Проверьте свои входящие']")
+        #         #TODO
+        #     except NoSuchElementException:
+        #         pass
 
         def open_main_page(self, timer=30):
             """
@@ -95,8 +150,6 @@ class ChatGPT:
                 try:
                     self.driver_shell.go_to_page_if_different(self.gpt.main_page, log=False)
                     text_area = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.text_area_sel, seconds=0)
-                    #self._save_fetch()
-                    #self._enable_fetch(False)
                 except NoSuchElementException:
                     self.driver_shell.driver.refresh()
                 finally:
@@ -115,20 +168,27 @@ class ChatGPT:
             self._is_ready()
             self._pass_thanks_window()
             self._pass_need_login()
-            #self._enable_fetch(True)
 
-            text_area = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.text_area_sel)
-            text_area.click()
-            text_area.send_keys(value)
+            if self.gpt.is_personalization_enabled():
+                new_value = self.gpt.get_current_personalization().prompt + value
+                value = new_value
+                value = value.replace("\n", "")
 
-            send_btn = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.send_btn_sel)
-            send_btn.click()
+            try:
+                text_area = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.text_area_sel)
+                text_area.click()
+                text_area.send_keys(value)
+
+                send_btn = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.send_button_sel)
+                self.driver_shell.scroll_to_elem(send_btn)
+                send_btn.click()
+            except (NoSuchElementException, ElementNotInteractableException):
+                LOGGER.error(f"Ошибка в отправке промта...")
 
         def get_last_response(self, start_delay=5, timer=30):
             self._is_ready()
             self._pass_thanks_window()
             self._pass_need_login()
-            #self._enable_fetch(True)
 
             current_timer = timer
             response: Optional[WebElement] = None
@@ -139,9 +199,10 @@ class ChatGPT:
 
                 # Ожидание генерации последнего сообщения
                 try:
-                    stop_btn = self.driver_shell.find_element(by=By.XPATH,
-                                                              value="//button[@data-testid='stop-button']",
-                                                              seconds=0)
+                    stop_btn = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.stop_button_sel, seconds=1)
+                    if stop_btn and stop_btn.is_displayed():
+                        continue
+                except StaleElementReferenceException:
                     continue
                 except NoSuchElementException:
                     # Сообщение сгенерировано
@@ -151,8 +212,8 @@ class ChatGPT:
                 # Поиск последнего сообщения
                 try:
                     responses = self.driver_shell.find_elements(by=By.XPATH,
-                                                                value=self.gpt.last_assistant_msg_sel,
-                                                                elem_name="Последний ответ от ассистента",
+                                                                value=self.gpt.assistant_msg_sel,
+                                                                elem_name="Ответы от ассистента",
                                                                 seconds=0)
 
                     response = responses[-1]
@@ -172,15 +233,27 @@ class ChatGPT:
             else:
                 return None
 
+    def is_personalization_enabled(self):
+        return self._personalization_enabled
+
+    def enable_personalization(self, enable: bool):
+        self._personalization_enabled = enable
+
+    def get_personalizations(self):
+        return self._Personalizations
+
+    def set_personalization(self, persona: ChatGPTPersonalization):
+        self._current_personalization = persona
+
+    def get_current_personalization(self):
+        return self._current_personalization
+
     def get_configs(self):
         return self._Configurations
 
-    def set_config(self, config_name):
+    def set_config(self, configuration: ChatGPTConfiguration):
         """Установить текущую конфигурацию."""
-        if hasattr(self._Configurations, config_name):
-            self._current_config = getattr(self._Configurations, config_name)
-        else:
-            raise ValueError(f"Configuration '{config_name}' not found.")
+        self._current_config = configuration
 
     def get_current_config(self):
         """Получить текущий набор переменных."""
@@ -188,20 +261,24 @@ class ChatGPT:
 
     @property
     def main_page(self):
-        return self._current_config["main_page"]
+        return self._current_config.main_page
 
     @property
     def text_area_sel(self):
-        return self._current_config["text_area_sel"]
+        return self._current_config.text_area_sel
 
     @property
-    def send_btn_sel(self):
-        return self._current_config["send_btn_sel"]
+    def send_button_sel(self):
+        return self._current_config.send_button_sel
 
     @property
-    def last_assistant_msg_sel(self):
-        return self._current_config["last_assistant_msg_sel"]
+    def assistant_msg_sel(self):
+        return self._current_config.assistant_msg_sel
 
     @property
     def thanks_dialog_sel(self):
-        return self._current_config["thanks_dialog_sel"]
+        return self._current_config.thanks_dialog_sel
+
+    @property
+    def stop_button_sel(self):
+        return self._current_config.stop_button_sel

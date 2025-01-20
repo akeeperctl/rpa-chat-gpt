@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 import akp.root
 from akp.driver_shell import DriverShell
@@ -6,7 +6,22 @@ from akp.logger import LOGGER
 from project.chatgpt import ChatGPT
 
 
+class ConsoleCommand:
+    def __init__(self, name: str, func: Callable):
+        self._name = name
+        self._func = func
+
+    def execute(self, *args, **kwargs):
+        self._func(*args, **kwargs)
+
+    def get_name(self):
+        return self._name
+
+
 def main():
+    # while True:
+    #     input_text = input("Введите команду: ")
+
     root = akp.root.get_project_root()
 
     driver_user_data = root / "browser/user_data1"
@@ -18,21 +33,11 @@ def main():
 
     driver: Optional[DriverShell.Selenium] = None
     try:
-        driver = DriverShell.SeleniumBaseUC(user_data_dir=driver_user_data)
-        driver.execute_cdp_cmd('Network.enable', {})
-
-        # Блокируем запросы по URL
-        blocked_url = 'api.openai.com'
-        driver.execute_cdp_cmd('Network.setBlockedURLs', {'urls': [blocked_url]})
-        chat_gpt = ChatGPT(driver)
+        driver = DriverShell.SeleniumBaseUC(user_data_dir=driver_user_data, headless=True)
+        chat_gpt = ChatGPT(driver, enable_personalization=True)
+        chat_gpt.set_config(chat_gpt.get_configs().chatapp_chatgpt)
 
         if chat_gpt.RPA.open_main_page():
-
-            # chat_gpt.RPA.send_prompt("Привет, меня зовут Даниил")
-            # print(f"Ответ: {chat_gpt.RPA.get_last_response()}")
-            #
-            # chat_gpt.RPA.send_prompt("Я получил к тебе доступ через RPA и VPN")
-            # print(f"Ответ: {chat_gpt.RPA.get_last_response()}")
 
             while True:
                 prompt = input("Введите промт: ")

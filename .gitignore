@@ -1,0 +1,9 @@
+# Catalogs
+.idea
+browser
+akp
+
+# File extensions
+*.log
+*lock
+*.pyc

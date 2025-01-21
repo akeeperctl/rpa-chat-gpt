@@ -7,3 +7,5 @@ akp
 *.log
 *lock
 *.pyc
+# Ignore dynaconf secret files
+.secrets.*

@@ -19,6 +19,8 @@ class ConsoleCommand:
 
 
 def main():
+    LOGGER.enable(False)
+
     # while True:
     #     input_text = input("Введите команду: ")
 

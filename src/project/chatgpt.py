@@ -43,8 +43,8 @@ class ChatGPTPersonalization:
 
 class ChatGPT:
 
-    def __init__(self, driver_shell: DriverShell.Selenium, enable_personalization: bool):
-        self.RPA = self._RPA(driver_shell, self)
+    def __init__(self, driver: DriverShell.Selenium, enable_personalization: bool):
+        self.RPA = self._RPA(driver, self)
         self._current_config = self.get_configs().openai_chatgpt
         self._current_personalization = self.get_personalizations().default
         self._personalization_enabled = enable_personalization
@@ -81,14 +81,14 @@ class ChatGPT:
 
     class _RPA:
 
-        def __init__(self, driver_shell: DriverShell.Selenium, _gpt_object):
-            self.driver_shell = driver_shell
+        def __init__(self, driver: DriverShell.Selenium, _gpt_object):
+            self.driver = driver
             self.gpt: ChatGPT = _gpt_object
 
             self._fetch_saved = False
 
         def _is_ready(self):
-            link = self.driver_shell.get_current_link()
+            link = self.driver.get_current_link()
             if self.gpt.main_page not in link:
                 LOGGER.warning(f"Драйвер не находится на странице ИИ-ассистента! Тек. страница: {link}")
                 self.open_main_page()
@@ -99,7 +99,7 @@ class ChatGPT:
 
             if self.gpt.thanks_dialog_sel:
                 try:
-                    dialog = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.thanks_dialog_sel, seconds=1)
+                    dialog = self.driver.find_element(by=By.XPATH, value=self.gpt.thanks_dialog_sel, seconds=1)
                     cancel_btn = dialog.find_element(by=By.XPATH, value=".//a[text()='Не входить']")
                     cancel_btn.click()
                 except NoSuchElementException:
@@ -107,27 +107,27 @@ class ChatGPT:
 
         def _pass_need_login(self):
             login_url = "https://auth.openai.com/api/accounts/login?login_challenge="
-            if login_url in self.driver_shell.get_current_link():
+            if login_url in self.driver.get_current_link():
                 raise Exception("Требуется авторизация. Попробуйте очистить куки.")
 
         # def authorize(self):
-        #     email_input = self.driver_shell.find_element(by=By.XPATH, value="//input[contains(@class, 'email-input')]")
+        #     email_input = self.driver.find_element(by=By.XPATH, value="//input[contains(@class, 'email-input')]")
         #     email_input.click()
         #     email_input.send_keys("my_yahoo_mail")
         #
         #     continue_btn_sel = "//button[contains(@class, 'continue-btn)]"
-        #     continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
+        #     continue_btn = self.driver.find_element(by=By.XPATH, value=continue_btn_sel)
         #     continue_btn.click()
         #
-        #     password_input = self.driver_shell.find_element(by=By.XPATH, value="//input[@id='password']", seconds=15)
+        #     password_input = self.driver.find_element(by=By.XPATH, value="//input[@id='password']", seconds=15)
         #     password_input.click()
         #     password_input.send_keys("my_pass")
         #
-        #     continue_btn = self.driver_shell.find_element(by=By.XPATH, value=continue_btn_sel)
+        #     continue_btn = self.driver.find_element(by=By.XPATH, value=continue_btn_sel)
         #     continue_btn.click()
         #
         #     try:
-        #         need_email_code = self.driver_shell.find_element(by=By.XPATH,
+        #         need_email_code = self.driver.find_element(by=By.XPATH,
         #                                                          value="//h1[text()='Проверьте свои входящие']")
         #         #TODO
         #     except NoSuchElementException:
@@ -148,10 +148,10 @@ class ChatGPT:
 
                 # Попытка открыть чат
                 try:
-                    self.driver_shell.go_to_page_if_different(self.gpt.main_page, log=False)
-                    text_area = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.text_area_sel, seconds=0)
+                    self.driver.go_to_page_if_different(self.gpt.main_page, log=False)
+                    text_area = self.driver.find_element(by=By.XPATH, value=self.gpt.text_area_sel, seconds=0)
                 except NoSuchElementException:
-                    self.driver_shell.driver.refresh()
+                    self.driver.driver.refresh()
                 finally:
 
                     # Отсчет таймера
@@ -175,12 +175,12 @@ class ChatGPT:
                 value = value.replace("\n", "")
 
             try:
-                text_area = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.text_area_sel)
+                text_area = self.driver.find_element(by=By.XPATH, value=self.gpt.text_area_sel)
                 text_area.click()
                 text_area.send_keys(value)
 
-                send_btn = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.send_button_sel)
-                self.driver_shell.scroll_to_elem(send_btn)
+                send_btn = self.driver.find_element(by=By.XPATH, value=self.gpt.send_button_sel)
+                self.driver.scroll_to_elem(send_btn)
                 send_btn.click()
             except (NoSuchElementException, ElementNotInteractableException):
                 LOGGER.error(f"Ошибка в отправке промта...")
@@ -199,7 +199,7 @@ class ChatGPT:
 
                 # Ожидание генерации последнего сообщения
                 try:
-                    stop_btn = self.driver_shell.find_element(by=By.XPATH, value=self.gpt.stop_button_sel, seconds=1)
+                    stop_btn = self.driver.find_element(by=By.XPATH, value=self.gpt.stop_button_sel, seconds=1)
                     if stop_btn and stop_btn.is_displayed():
                         continue
                 except StaleElementReferenceException:
@@ -211,10 +211,10 @@ class ChatGPT:
 
                 # Поиск последнего сообщения
                 try:
-                    responses = self.driver_shell.find_elements(by=By.XPATH,
-                                                                value=self.gpt.assistant_msg_sel,
-                                                                elem_name="Ответы от ассистента",
-                                                                seconds=0)
+                    responses = self.driver.find_elements(by=By.XPATH,
+                                                          value=self.gpt.assistant_msg_sel,
+                                                          elem_name="Ответы от ассистента",
+                                                          seconds=0)
 
                     response = responses[-1]
                 except NoSuchElementException:

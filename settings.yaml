@@ -1,0 +1,35 @@
+desc: "21.01.2025: ПОКА ЧТО НЕ ИСПОЛЬЗУЕТСЯ"
+
+chatgpt:
+  logging:
+    enabled: 0
+
+  personalizations:
+    default:
+      user_name: "Даниил"
+      user_position: "Программист Python"
+      ai_response_length: 100
+      ai_character: "Строгий старший программист"
+      ai_job: "Помогать советами и подсказывать идеи реализации"
+
+  configurations:
+    openai_chatgpt:
+      main_page: "https://chatgpt.com/"
+      text_area_sel: "//div[@id='prompt-textarea']"
+      send_button_sel: "//button[@data-testid='send-button']"
+      stop_button_sel: "//button[@data-testid='stop-button']"
+      assistant_msg_sel: "//div[@data-message-author-role='assistant']"
+      thanks_dialog_sel: "//div[@role='dialog']"
+
+    chatapp_chatgpt:
+      main_page: "https://chatgptchatapp.com/ru"
+      text_area_sel: "//textarea[@id='chat-input']"
+      send_button_sel: "//button[@class='btn-send-message']"
+      stop_button_sel: "//button[@class='btn-stop-response']"
+      assistant_msg_sel: "//div[@class='chat-box ai-completed']"
+      thanks_dialog_sel: null
+
+  time:
+    last_response:
+      start_delay: 5
+      timer: 30

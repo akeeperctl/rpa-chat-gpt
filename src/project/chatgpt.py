@@ -38,7 +38,7 @@ class ChatGPTPersonalization:
             Максимальная длина твоего сообщения - {self.ai_response_length} символов;
             Твой характер общения со мной - {self.ai_character};
             Твоя задача - {self.ai_job}.]
-        """
+            """
 
 
 class ChatGPT:
@@ -78,6 +78,11 @@ class ChatGPT:
             "assistant_msg_sel": "//div[@class='chat-box ai-completed']",
             "thanks_dialog_sel": None
         })
+
+        # TODO:
+        # https://chat.deepseek.com/
+        # https://www.blackbox.ai/
+        # https://gpt-chatbot.ru/chat-gpt-ot-openai-dlya-generacii-teksta
 
     class _RPA:
 

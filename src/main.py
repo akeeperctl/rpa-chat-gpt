@@ -3,7 +3,7 @@ from typing import Optional, Callable
 import akp.root
 from akp.driver_shell import DriverShell
 from akp.logger import LOGGER
-from project.chatgpt import ChatGPT
+from llm.chatgpt import ChatGPT, ConfigEnum
 
 
 class ConsoleCommand:
@@ -37,7 +37,7 @@ def main():
     try:
         driver = DriverShell.SeleniumBaseUC(user_data_dir=driver_user_data, headless=True)
         chat_gpt = ChatGPT(driver, enable_personalization=True)
-        chat_gpt.set_config(chat_gpt.get_configs().chatapp_chatgpt)
+        chat_gpt.set_config(ConfigEnum.CHATAPP)
 
         if chat_gpt.RPA.open_main_page():
 

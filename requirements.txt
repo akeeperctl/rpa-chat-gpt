@@ -1,6 +1,6 @@
 python-dotenv~=1.0.1
 pathlib~=1.0.1
-requests~=2.32.0
+requests~=2.31.0
 pandas~=2.2.2
 selenium~=4.25.0
 seleniumbase~=4.31.6
@@ -8,3 +8,4 @@ mysql-connector-python~=9.1.0
 pytesseract~=0.3.13
 pillow~=11.1.0
 dynaconf[all]~=3.2.6
+beautifulsoup4~=4.12.3

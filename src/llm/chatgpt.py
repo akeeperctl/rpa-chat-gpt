@@ -10,140 +10,19 @@ from selenium.webdriver.remote.webelement import WebElement
 from akp.driver_shell import DriverShell
 from akp.logger import LOGGER
 from config import settings
-
-
-class ConfigEnum(Enum):
-    OPENAI = 'openai_chatgpt'
-    CHATAPP = 'chatapp_chatgpt'
-    DEEPSEEK = 'deepseek_chatgpt'
-
-
-class ChatGPTConfiguration:
-    BASE_SELECTORS = {
-        "text_area_sel": None,
-        "send_button_sel": None,
-        "stop_button_sel": None,
-        "assistant_msg_sel": None,
-        "login_checkbox_sel": None,
-        "login_button_sel": None,
-        "login_sel": None,
-        "password_sel": None,
-        "thanks_dialog_sel": None,
-    }
-
-    def __init__(self, name: str, pages: dict, overrides: dict):
-        self.name = name
-        self._pages = pages  # Страницы, такие как main_page и login_page
-        self._selectors = {**self.BASE_SELECTORS, **overrides}  # Объединяем базовые и уникальные селекторы
-
-    def get_page(self, key):
-        return self._pages.get(key)
-
-    def get_selector(self, key):
-        return self._selectors.get(key)
-
-
-class ChatGPTPersonalization:
-
-    def __init__(self, values: dict):
-        self.user_name = values.get("user_name") or None
-        self.user_position = values.get("user_position") or None
-        self.ai_response_length = values.get("ai_response_length") or None
-        self.ai_character = values.get("ai_character") or None
-        self.ai_job = values.get("ai_job") or None
-
-        self.prompt = f"""
-            [Это настройки для диалога с тобой. 
-            После закрывающейся квадратной скобки идет моё нормальное сообщение. 
-            Отвечай на него естественно.
-            Моё имя - {self.user_name};
-            Моя должность - {self.user_position};
-            Максимальная длина твоего сообщения - {self.ai_response_length} символов;
-            Твой характер общения со мной - {self.ai_character};
-            Твоя задача - {self.ai_job}.]
-            """
+from llm.chatgpt_configuration import BaseConfigurationTypes
+from llm.chatgpt_personalization import BasePersonalizationTypes
 
 
 class ChatGPT:
+    ConfigurationTypes = BaseConfigurationTypes
+    PersonalizationTypes = BasePersonalizationTypes
 
     def __init__(self, driver: DriverShell.Selenium, enable_personalization: bool):
         self.RPA = self._RPA(driver, self)
-        self._configurations = self._initialize_configurations()
-        self._current_config = self.get_config(ConfigEnum.CHATAPP)
-        self._current_personalization = self.get_personalizations().default
+        self._current_config = self.ConfigurationTypes.DEFAULT
+        self._current_personalization = self.PersonalizationTypes.DEFAULT
         self._personalization_enabled = enable_personalization
-
-    @staticmethod
-    def _initialize_configurations():
-        configurations_data = {
-
-            # https://www.blackbox.ai/
-            # https://gpt-chatbot.ru/chat-gpt-ot-openai-dlya-generacii-teksta
-
-            # FIXME: нужен хороший VPN, чтобы работал этот конфиг
-            ConfigEnum.OPENAI: {
-                "pages": {
-                    "main_page": "https://chatgpt.com/",
-                    "login_page": None,
-                },
-                "selectors": {
-                    "text_area_sel": "//div[@id='prompt-textarea']",
-                    "send_button_sel": "//button[@data-testid='send-button']",
-                    "stop_button_sel": "//button[@data-testid='stop-button']",
-                    "assistant_msg_sel": "//div[@data-message-author-role='assistant']",
-                    "thanks_dialog_sel": "//div[@role='dialog']",
-                },
-            },
-
-            ConfigEnum.CHATAPP: {
-                "pages": {
-                    "main_page": "https://chatgptchatapp.com/ru",
-                    "login_page": None,
-                },
-                "selectors": {
-                    "text_area_sel": "//textarea[@id='chat-input']",
-                    "send_button_sel": "//button[@class='btn-send-message']",
-                    "stop_button_sel": "//button[@class='btn-stop-response']",
-                    "assistant_msg_sel": "//div[@class='chat-box ai-completed']",
-                },
-            },
-
-            ConfigEnum.DEEPSEEK: {
-                "pages": {
-                    "main_page": "https://chat.deepseek.com/",
-                    "login_page": "https://chat.deepseek.com/sign_in",
-                },
-                "selectors": {
-                    "text_area_sel": "//textarea[@id='chat-input']",
-                    "send_button_sel": "//div[@role='button' and contains(@class, 'f6d670')]",
-                    "stop_button_sel": "//div[@role='button' and @class='f6d670']",
-                    "assistant_msg_sel": "//div[contains(@class, 'f9bf7997')]",
-                    "login_checkbox_sel": "//div[contains(@class, 'ds-checkbox--none')]",
-                    "login_button_sel": "//div[text()='Log in']",
-                    "login_sel": "//input[@type='text']",
-                    "password_sel": "//input[@type='password']",
-                },
-            },
-        }
-
-        # Автоматически создаем конфигурации
-        return {
-            config_enum: ChatGPTConfiguration(
-                name=config_enum.value,
-                pages=data["pages"],
-                overrides=data["selectors"],
-            )
-            for config_enum, data in configurations_data.items()
-        }
-
-    class _Personalizations:
-        default = ChatGPTPersonalization({
-            "user_name": "Даниил",
-            "user_position": "Программист Python",
-            "ai_response_length": 100,
-            "ai_character": "Строгий старший программист",
-            "ai_job": "Помогать советами и подсказывать идеи реализации"
-        })
 
     class _RPA:
 
@@ -157,7 +36,7 @@ class ChatGPT:
             link = self.driver.get_current_link()
             cfg = self.gpt.get_current_config()
 
-            if cfg.get_page('main_page') not in link:
+            if cfg.value.get_page('main_page') not in link:
                 LOGGER.warning(f"Драйвер не находится на странице ИИ-ассистента! Тек. страница: {link}")
                 self.open_main_page()
                 time.sleep(1)
@@ -165,7 +44,7 @@ class ChatGPT:
         def _pass_thanks_window(self):
             self._is_ready()
             cfg = self.gpt.get_current_config()
-            thanks_sel = cfg.get_selector('thanks_dialog_sel')
+            thanks_sel = cfg.value.get_selector('thanks_dialog_sel')
             cancel_sel = ".//a[text()='Не входить']"
 
             if thanks_sel:
@@ -213,13 +92,13 @@ class ChatGPT:
 
                 try:
 
-                    login_page = cfg.get_page('login_page')
+                    login_page = cfg.value.get_page('login_page')
 
                     # Получение селекторов
-                    login_checkbox_sel = cfg.get_selector('login_checkbox_sel')
-                    login_sel = cfg.get_selector('login_sel')
-                    login_button_sel = cfg.get_selector('login_button_sel')
-                    password_sel = cfg.get_selector('password_sel')
+                    login_checkbox_sel = cfg.value.get_selector('login_checkbox_sel')
+                    login_sel = cfg.value.get_selector('login_sel')
+                    login_button_sel = cfg.value.get_selector('login_button_sel')
+                    password_sel = cfg.value.get_selector('password_sel')
 
                     self.driver.go_to_page_if_different(login_page)
 
@@ -249,6 +128,22 @@ class ChatGPT:
 
             return self._authorized
 
+        def new_chat(self):
+            cfg = self.gpt.get_current_config()
+
+            new_chat_sel = cfg.value.get_selector("new_chat_sel")
+            if not new_chat_sel:
+                return False
+
+            try:
+                new_chat_element = self.driver.find_element(by=By.XPATH, value=new_chat_sel)
+                new_chat_element.click()
+                self.driver.sleep(1)
+                return True
+
+            except NoSuchElementException:
+                return False
+
         def open_main_page(self, timer=30):
             """
             Попытка открыть главную страницу за указанное время
@@ -261,19 +156,19 @@ class ChatGPT:
             current_timer = timer
 
             # Проверяем, требуется ли обработка перенаправления
-            requires_redirect_handling = cfg.name == ConfigEnum.DEEPSEEK.value
+            requires_redirect_handling = cfg.name == self.gpt.ConfigurationTypes.DEEPSEEK.name
 
             while True:
 
                 # Попытка открыть чат
                 try:
                     # Открытие главной страницы
-                    self.driver.go_to_page_if_different(cfg.get_page('main_page'), log=False)
+                    self.driver.go_to_page_if_different(cfg.value.get_page('main_page'), log=False)
 
                     # Если DEEPSEEK, проверяем текущий URL на перенаправление
                     if requires_redirect_handling:
                         current_url = self.driver.driver.current_url
-                        expected_login_page = cfg.get_page('login_page')
+                        expected_login_page = cfg.value.get_page('login_page')
 
                         if current_url == expected_login_page:
                             # Выполняем логику на странице логина (например, авторизация)
@@ -282,7 +177,7 @@ class ChatGPT:
                             # Пытаемся снова открыть главную страницу
                             continue
 
-                    text_area = self.driver.find_element(by=By.XPATH, value=cfg.get_selector('text_area_sel'),
+                    text_area = self.driver.find_element(by=By.XPATH, value=cfg.value.get_selector('text_area_sel'),
                                                          seconds=0)
                     break
                 except NoSuchElementException:
@@ -309,16 +204,16 @@ class ChatGPT:
             cfg = self.gpt.get_current_config()
 
             if self.gpt.is_personalization_enabled():
-                new_value = self.gpt.get_current_personalization().prompt + value
+                new_value = self.gpt.get_current_personalization().value.prompt + value
                 value = new_value
                 value = value.replace("\n", "")
 
             try:
-                text_area = self.driver.find_element(by=By.XPATH, value=cfg.get_selector('text_area_sel'))
+                text_area = self.driver.find_element(by=By.XPATH, value=cfg.value.get_selector('text_area_sel'))
                 text_area.click()
                 text_area.send_keys(value)
 
-                send_btn = self.driver.find_element(by=By.XPATH, value=cfg.get_selector('send_button_sel'))
+                send_btn = self.driver.find_element(by=By.XPATH, value=cfg.value.get_selector('send_button_sel'))
                 self.driver.scroll_to_elem(send_btn)
                 send_btn.click()
             except (NoSuchElementException, ElementNotInteractableException) as e:
@@ -342,7 +237,7 @@ class ChatGPT:
                 # Ожидание генерации последнего сообщения
                 try:
                     stop_btn = self.driver.find_element(by=By.XPATH,
-                                                        value=cfg.get_selector('stop_button_sel'),
+                                                        value=cfg.value.get_selector('stop_button_sel'),
                                                         seconds=1)
                     if stop_btn and stop_btn.is_displayed():
                         continue
@@ -356,7 +251,7 @@ class ChatGPT:
                 # Поиск последнего сообщения
                 try:
                     responses = self.driver.find_elements(by=By.XPATH,
-                                                          value=cfg.get_selector('assistant_msg_sel'),
+                                                          value=cfg.value.get_selector('assistant_msg_sel'),
                                                           elem_name="Ответы от ассистента",
                                                           seconds=0)
 
@@ -387,22 +282,58 @@ class ChatGPT:
     def enable_personalization(self, enable: bool):
         self._personalization_enabled = enable
 
-    def get_personalizations(self):
-        return self._Personalizations
-
-    def set_personalization(self, persona: ChatGPTPersonalization):
-        self._current_personalization = persona
+    def set_personalization(self, persona_type: PersonalizationTypes):
+        self._current_personalization = persona_type
 
     def get_current_personalization(self):
         return self._current_personalization
 
-    def set_config(self, config: ConfigEnum):
+    def set_config(self, config_type: ConfigurationTypes):
         """Установить текущую конфигурацию."""
-        self._current_config = self.get_config(config)
+        self._current_config = config_type
 
     def get_current_config(self):
         """Получить текущий набор переменных."""
         return self._current_config
 
-    def get_config(self, config: ConfigEnum):
-        return self._configurations[config]
+
+if __name__ == "__main__":
+    LOGGER.info("Пример работы RPA в различных ChatGPT")
+
+    import akp.root
+
+    root = akp.root.get_project_root()
+    driver_user_data = root / "browser/user_data1"
+
+    _driver: Optional[DriverShell.Selenium] = None
+    try:
+        _driver = DriverShell.SeleniumBaseUC(user_data_dir=driver_user_data, headless=False)
+        chat_gpt = ChatGPT(_driver, enable_personalization=True)
+
+        chat_gpt_config_name = settings.chatgpt.configuration.name
+        chat_gpt_person_name = settings.chatgpt.personalization.name
+
+        chat_gpt_config = getattr(ChatGPT.ConfigurationTypes, chat_gpt_config_name)
+        chat_gpt_person = getattr(ChatGPT.PersonalizationTypes, chat_gpt_person_name)
+
+        chat_gpt.set_config(chat_gpt_config)
+        chat_gpt.set_personalization(chat_gpt_person)
+
+        if chat_gpt.RPA.open_main_page():
+
+            if settings.chatgpt.start_new_chat == 1:
+                chat_gpt.RPA.new_chat()
+
+            while True:
+                prompt = input("Введите промт: ")
+                if prompt == 'q':
+                    break
+
+                chat_gpt.RPA.send_prompt(prompt)
+                print(f"Ответ: {chat_gpt.RPA.get_last_response(start_delay=1)}")
+
+    except OSError:
+        pass
+    finally:
+        if _driver:
+            _driver.quit()

@@ -1,18 +1,13 @@
-desc: "21.01.2025: ПОКА ЧТО НЕ ИСПОЛЬЗУЕТСЯ"
-
 chatgpt:
+  dynaconf_merge: true
+
   logging:
     enabled: 0
 
-  personalizations:
-    default:
-      user_name: "Даниил"
-      user_position: "Программист Python"
-      ai_response_length: 100
-      ai_character: "Строгий старший программист"
-      ai_job: "Помогать советами и подсказывать идеи реализации"
+  start_new_chat: 1
 
-  time:
-    last_response:
-      start_delay: 5
-      timer: 30
+  configuration:
+    name: "DEEPSEEK"
+
+  personalization:
+    name: "DEFAULT"

@@ -3,7 +3,9 @@ from typing import Optional, Callable
 import akp.root
 from akp.driver_shell import DriverShell
 from akp.logger import LOGGER
-from llm.chatgpt import ChatGPT, ConfigEnum
+from llm.chatgpt import ChatGPT
+
+from config import settings
 
 
 class ConsoleCommand:
@@ -19,13 +21,12 @@ class ConsoleCommand:
 
 
 def main():
-    LOGGER.enable(False)
+    LOGGER.enable(settings.chatgpt.logging.enabled == 1)
 
     # while True:
     #     input_text = input("Введите команду: ")
 
     root = akp.root.get_project_root()
-
     driver_user_data = root / "browser/user_data1"
     # driver_extensions = (
     #     str(root / "browser/extensions/adguard/5.0.183_0"),
@@ -37,9 +38,20 @@ def main():
     try:
         driver = DriverShell.SeleniumBaseUC(user_data_dir=driver_user_data, headless=True)
         chat_gpt = ChatGPT(driver, enable_personalization=True)
-        chat_gpt.set_config(ConfigEnum.CHATAPP)
+
+        chat_gpt_config_name = settings.chatgpt.configuration.name
+        chat_gpt_person_name = settings.chatgpt.personalization.name
+
+        chat_gpt_config = getattr(ChatGPT.ConfigurationTypes, chat_gpt_config_name)
+        chat_gpt_person = getattr(ChatGPT.PersonalizationTypes, chat_gpt_person_name)
+
+        chat_gpt.set_config(chat_gpt_config)
+        chat_gpt.set_personalization(chat_gpt_person)
 
         if chat_gpt.RPA.open_main_page():
+
+            if settings.chatgpt.start_new_chat == 1:
+                chat_gpt.RPA.new_chat()
 
             while True:
                 prompt = input("Введите промт: ")

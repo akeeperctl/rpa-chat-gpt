@@ -8,4 +8,4 @@ akp
 *lock
 *.pyc
 # Ignore dynaconf secret files
-.secrets.*
+config/.secrets.yaml

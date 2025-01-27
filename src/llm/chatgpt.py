@@ -1,15 +1,15 @@
 import time
 import traceback
-from enum import Enum
 from typing import Optional
 
-from selenium.common import NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException
+from selenium.common import (NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException,
+                             ElementClickInterceptedException)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
 from akp.driver_shell import DriverShell
 from akp.logger import LOGGER
-from config import settings
+from config.config import settings
 from llm.chatgpt_configuration import BaseConfigurationTypes
 from llm.chatgpt_personalization import BasePersonalizationTypes
 
@@ -141,7 +141,7 @@ class ChatGPT:
                 self.driver.sleep(1)
                 return True
 
-            except NoSuchElementException:
+            except (NoSuchElementException, ElementClickInterceptedException):
                 return False
 
         def open_main_page(self, timer=30):
@@ -216,7 +216,7 @@ class ChatGPT:
                 send_btn = self.driver.find_element(by=By.XPATH, value=cfg.value.get_selector('send_button_sel'))
                 self.driver.scroll_to_elem(send_btn)
                 send_btn.click()
-            except (NoSuchElementException, ElementNotInteractableException) as e:
+            except (NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as e:
                 LOGGER.error(f"Ошибка в отправке промта: {e}")
                 # LOGGER.error(traceback.format_exc())
 
@@ -250,8 +250,9 @@ class ChatGPT:
 
                 # Поиск последнего сообщения
                 try:
+                    response_sel = cfg.value.get_selector('assistant_msg_sel')
                     responses = self.driver.find_elements(by=By.XPATH,
-                                                          value=cfg.value.get_selector('assistant_msg_sel'),
+                                                          value=response_sel,
                                                           elem_name="Ответы от ассистента",
                                                           seconds=0)
 

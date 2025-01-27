@@ -4,10 +4,8 @@ chatgpt:
   logging:
     enabled: 0
 
-  start_new_chat: 1
-
   configuration:
-    name: "DEEPSEEK"
+    name: "CHATAPP"
 
   personalization:
     name: "DEFAULT"

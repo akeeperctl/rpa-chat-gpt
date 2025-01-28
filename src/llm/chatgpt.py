@@ -3,7 +3,7 @@ import traceback
 from typing import Optional
 
 from selenium.common import (NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException,
-                             ElementClickInterceptedException)
+                             ElementClickInterceptedException, InvalidSelectorException)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
@@ -181,6 +181,7 @@ class ChatGPT:
                                                          seconds=0)
                     break
                 except NoSuchElementException:
+                    LOGGER.warning("Не могу найти поле для ввода! Обновляю страницу...")
                     self.driver.driver.refresh()
 
                     # Отсчет таймера
@@ -216,9 +217,11 @@ class ChatGPT:
                 send_btn = self.driver.find_element(by=By.XPATH, value=cfg.value.get_selector('send_button_sel'))
                 self.driver.scroll_to_elem(send_btn)
                 send_btn.click()
-            except (NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as e:
-                LOGGER.error(f"Ошибка в отправке промта: {e}")
-                # LOGGER.error(traceback.format_exc())
+            except (NoSuchElementException,
+                    ElementNotInteractableException,
+                    ElementClickInterceptedException):
+                LOGGER.warning(f"Ошибка в отправке промта!")
+                LOGGER.error(traceback.format_exc())
 
         def get_last_response(self, start_delay=5, timer=30):
             self._is_ready()
@@ -249,20 +252,24 @@ class ChatGPT:
                     pass
 
                 # Поиск последнего сообщения
+                error_message = "Не нашел последний ответ от ассистента"
                 try:
                     response_sel = cfg.value.get_selector('assistant_msg_sel')
                     responses = self.driver.find_elements(by=By.XPATH,
                                                           value=response_sel,
                                                           elem_name="Ответы от ассистента",
-                                                          seconds=0)
+                                                          seconds=0,
+                                                          log=False)
 
                     if len(responses) > 0:
                         response = responses[-1]
+                    else:
+                        raise NoSuchElementException(response_sel)
 
                 except NoSuchElementException:
-                    LOGGER.warning("Не нашел последнего сообщения от ассистента")
+                    LOGGER.warning(error_message)
                 except IndexError:
-                    LOGGER.error(f"Ошибка при получении последнего сообщения: {traceback.format_exc()}")
+                    LOGGER.error(f"Ошибка при получении последнего ответа: {traceback.format_exc()}")
                 finally:
                     current_timer -= 1
                     if response or current_timer <= 0:

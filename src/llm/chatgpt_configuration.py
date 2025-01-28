@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import TypedDict
 
 
 class ChatGPTConfigurationFlags(Enum):
@@ -9,8 +10,23 @@ class ChatGPTConfigurationFlags(Enum):
 FLAGS = ChatGPTConfigurationFlags
 
 
+class ChatGPTSelectors(TypedDict, total=False):
+    text_area_sel: str
+    send_button_sel: str
+    stop_button_sel: str
+    assistant_msg_sel: str
+
+    login_checkbox_sel: str
+    login_button_sel: str
+    login_sel: str
+    password_sel: str
+
+    thanks_dialog_sel: str
+    new_chat_sel: str
+
+
 class ChatGPTConfiguration:
-    BASE_SELECTORS = {
+    BASE_SELECTORS: ChatGPTSelectors = {
 
         "text_area_sel": None,
         "send_button_sel": None,
@@ -26,7 +42,7 @@ class ChatGPTConfiguration:
         "new_chat_sel": None,
     }
 
-    def __init__(self, pages: dict, overrides: dict, flags: tuple = ()):
+    def __init__(self, pages: dict, overrides: ChatGPTSelectors, flags: tuple = ()):
         self._pages = pages  # Страницы, такие как main_page и login_page
         self._selectors = {**self.BASE_SELECTORS, **overrides}  # Объединяем базовые и уникальные селекторы
         self._flags = flags
@@ -42,9 +58,8 @@ class ChatGPTConfiguration:
 
 
 class BaseConfigurationTypes(Enum):
-    # TODO 1: https://www.blackbox.ai/
     # TODO 2: https://gpt-chatbot.ru/chat-gpt-ot-openai-dlya-generacii-teksta
-    # TODO 3: https://trychatgpt.ru/
+    # TODO 4: автозапуск VPN при наличии специального флага
 
     # FIXME: нужен хороший VPN, чтобы работал этот конфиг
     OPENAI = ChatGPTConfiguration(
@@ -93,8 +108,8 @@ class BaseConfigurationTypes(Enum):
             "password_sel": "//input[@type='password']",
         })
 
-    # Здесь добавлять новые конфиги
-    
+    # Ниже добавлять новые конфиги
+
     RUGPT = ChatGPTConfiguration(
         pages={
             "main_page": "https://rugpt.io/"
@@ -109,6 +124,30 @@ class BaseConfigurationTypes(Enum):
         },
         flags=(FLAGS.FLAG_INCOGNITO_MODE,
                FLAGS.FLAG_START_NEW_CHAT)
+    )
+
+    BLACKBOX = ChatGPTConfiguration(
+        pages={
+            "main_page": "https://www.blackbox.ai/"
+        },
+        overrides={
+            "text_area_sel": "//textarea[@id='chat-input-box']",
+            "send_button_sel": "//button[(@type='submit') and (contains(@style, 'margin-right')) and (./span[@class='md:flex'])]",
+            "stop_button_sel": "//button[not(@type='submit') and (contains(@style, 'margin-right')) and (./span[@class='md:flex'])]",
+            "assistant_msg_sel": "//div[contains(@class, 'prose break-words')]",
+        },
+    )
+
+    TRYCHATGPT = ChatGPTConfiguration(
+        pages={
+            "main_page": "https://trychatgpt.ru/"
+        },
+        overrides={
+            "text_area_sel": "//textarea[@id='input']",
+            "send_button_sel": "//button[@id='send']",
+            "stop_button_sel": "//div[@class='typing-wave']",
+            "assistant_msg_sel": "//div[@class='message-content']",
+        },
     )
 
     DEFAULT = CHATAPP

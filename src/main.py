@@ -1,6 +1,4 @@
 import asyncio
-import logging
-import sys
 
 from selenium_driverless import webdriver
 
@@ -9,7 +7,7 @@ from akp.logger import LOGGER
 from akp.selenium_driverless_ex import webdriver_ex
 from config.config import settings
 from llm.chatgpt import ChatGPT
-from llm.chatgpt_configuration import FLAGS
+from llm.chatgpt_configuration import FLAGS, get_configuration
 
 ROOT = akp.root.get_external_project_root()
 
@@ -37,26 +35,20 @@ async def main_async():
 
     chat_gpt_config_name = settings.chatgpt.configuration.name
     chat_gpt_person_name = settings.chatgpt.personalization.name
-    chat_gpt_config: ChatGPT.ConfigurationTypes = getattr(ChatGPT.ConfigurationTypes, chat_gpt_config_name)
-    chat_gpt_person: ChatGPT.PersonalizationTypes = getattr(ChatGPT.PersonalizationTypes, chat_gpt_person_name)
+    chat_gpt_config = get_configuration(chat_gpt_config_name)
+    chat_gpt_person: ChatGPT.PersonalizationTypes = get_configuration(chat_gpt_person_name)
 
     try:
-        chat_gpt_flag_incognito = chat_gpt_config.value.get_flag(FLAGS.FLAG_INCOGNITO_MODE)
-        chat_gpt_flag_new_chat = chat_gpt_config.value.get_flag(FLAGS.FLAG_START_NEW_CHAT)
-
-        chat_gpt = ChatGPT(driver, enable_personalization=True)
-        chat_gpt.set_config(chat_gpt_config)
-        chat_gpt.set_personalization(chat_gpt_person)
+        chat_gpt_flag_new_chat = chat_gpt_config.get_flag(FLAGS.FLAG_START_NEW_CHAT)
+        chat_gpt = ChatGPT(driver, True, config=chat_gpt_config, person=chat_gpt_person)
 
         if await chat_gpt.rpa.open_main_page():
-
             if chat_gpt_flag_new_chat:
                 await chat_gpt.rpa.new_chat()
 
             LOGGER.info(f"Загружен {chat_gpt_config_name}, {chat_gpt_person.value.ai_character}")
 
             while True:
-
                 prompt = input("Введите промт: ")
                 if prompt == 'q':
                     break

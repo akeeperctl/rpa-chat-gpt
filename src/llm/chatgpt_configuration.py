@@ -1,16 +1,15 @@
 from enum import Enum
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 
-class ChatGPTConfigurationFlags(Enum):
-    FLAG_INCOGNITO_MODE = 0  # открывает страницу в инкогнито
-    FLAG_START_NEW_CHAT = 1  # начинает новый чат перед диалогом
+class _ChatGPTConfigurationFlags(Enum):
+    FLAG_START_NEW_CHAT = 0  # начинает новый чат перед диалогом
 
 
-FLAGS = ChatGPTConfigurationFlags
+FLAGS = _ChatGPTConfigurationFlags
 
 
-class ChatGPTSelectors(TypedDict, total=False):
+class _ChatGPTSelectors(TypedDict, total=False):
     text_area_sel: str
     send_button_sel: str
     stop_button_sel: str
@@ -25,8 +24,8 @@ class ChatGPTSelectors(TypedDict, total=False):
     new_chat_sel: str
 
 
-class ChatGPTConfiguration:
-    BASE_SELECTORS: ChatGPTSelectors = {
+class ChatGPTConfig:
+    BASE_SELECTORS: _ChatGPTSelectors = {
 
         "text_area_sel": None,
         "send_button_sel": None,
@@ -42,7 +41,7 @@ class ChatGPTConfiguration:
         "new_chat_sel": None,
     }
 
-    def __init__(self, pages: dict, overrides: ChatGPTSelectors, flags: tuple = ()):
+    def __init__(self, pages: dict, overrides: _ChatGPTSelectors, flags: tuple = ()):
         self._pages = pages  # Страницы, такие как main_page и login_page
         self._selectors = {**self.BASE_SELECTORS, **overrides}  # Объединяем базовые и уникальные селекторы
         self._flags = flags
@@ -57,12 +56,12 @@ class ChatGPTConfiguration:
         return self._selectors.get(key)
 
 
-class BaseConfigurationTypes(Enum):
+class ChatGPTConfigs(Enum):
     # TODO 2: https://gpt-chatbot.ru/chat-gpt-ot-openai-dlya-generacii-teksta
     # TODO 4: автозапуск VPN при наличии специального флага
 
     # FIXME: нужен хороший VPN, чтобы работал этот конфиг
-    OPENAI = ChatGPTConfiguration(
+    OPENAI = ChatGPTConfig(
         pages={
             "main_page": "https://chatgpt.com/",
             "login_page": None
@@ -75,7 +74,7 @@ class BaseConfigurationTypes(Enum):
             "thanks_dialog_sel": "//div[@role='dialog']",
         })
 
-    CHATAPP = ChatGPTConfiguration(
+    CHATAPP = ChatGPTConfig(
         pages={
             "main_page": "https://chatgptchatapp.com/ru",
         },
@@ -87,11 +86,10 @@ class BaseConfigurationTypes(Enum):
 
             "new_chat_sel": "//button[contains(@class, 'btn-new-chat')]",
         },
-        flags=(FLAGS.FLAG_INCOGNITO_MODE,
-               FLAGS.FLAG_START_NEW_CHAT)
+        flags=(FLAGS.FLAG_START_NEW_CHAT,)
     )
 
-    DEEPSEEK = ChatGPTConfiguration(
+    DEEPSEEK = ChatGPTConfig(
         pages={
             "main_page": "https://chat.deepseek.com/",
             "login_page": "https://chat.deepseek.com/sign_in"
@@ -110,7 +108,7 @@ class BaseConfigurationTypes(Enum):
 
     # Ниже добавлять новые конфиги
 
-    RUGPT = ChatGPTConfiguration(
+    RUGPT = ChatGPTConfig(
         pages={
             "main_page": "https://rugpt.io/"
         },
@@ -122,11 +120,10 @@ class BaseConfigurationTypes(Enum):
 
             "new_chat_sel": "//button[contains(@class, 'addChatButton')]"
         },
-        flags=(FLAGS.FLAG_INCOGNITO_MODE,
-               FLAGS.FLAG_START_NEW_CHAT)
+        flags=(FLAGS.FLAG_START_NEW_CHAT,)
     )
 
-    BLACKBOX = ChatGPTConfiguration(
+    BLACKBOX = ChatGPTConfig(
         pages={
             "main_page": "https://www.blackbox.ai/"
         },
@@ -138,7 +135,7 @@ class BaseConfigurationTypes(Enum):
         },
     )
 
-    TRYCHATGPT = ChatGPTConfiguration(
+    TRYCHATGPT = ChatGPTConfig(
         pages={
             "main_page": "https://trychatgpt.ru/"
         },
@@ -151,3 +148,10 @@ class BaseConfigurationTypes(Enum):
     )
 
     DEFAULT = CHATAPP
+
+
+def get_configuration(name) -> Optional[ChatGPTConfig]:
+    if hasattr(ChatGPTConfigs, name):
+        return getattr(ChatGPTConfigs, name)
+    else:
+        return None

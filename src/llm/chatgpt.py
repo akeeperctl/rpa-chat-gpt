@@ -8,8 +8,8 @@ from akp.logger import LOGGER
 from akp.selenium_driverless_ex.webdriver_ex import ChromeEx
 from akp.selenium_driverless_ex.webelement_ex import WebElementEx
 from config.config import settings
-from llm.chatgpt_configuration import BaseConfigurationTypes
-from llm.chatgpt_personalization import BasePersonalizationTypes
+from llm.chatgpt_configuration import ChatGPTConfig, ChatGPTConfigs
+from llm.chatgpt_personalization import ChatGPTPerson, ChatGPTPersons
 
 
 class ChatGPTRPA:
@@ -145,7 +145,7 @@ class ChatGPTRPA:
         timer = timeout
 
         # Проверяем, требуется ли обработка перенаправления
-        requires_redirect_handling = cfg.name == self._gpt.ConfigurationTypes.DEEPSEEK.name
+        requires_redirect_handling = cfg.name == ChatGPTConfigs.DEEPSEEK.name
 
         while True:
 
@@ -264,13 +264,13 @@ class ChatGPTRPA:
 
 
 class ChatGPT:
-    ConfigurationTypes = BaseConfigurationTypes
-    PersonalizationTypes = BasePersonalizationTypes
 
-    def __init__(self, driver, enable_personalization: bool):
+    def __init__(self, driver, enable_personalization: bool,
+                 config: Optional[ChatGPTConfig] = None,
+                 person: Optional[ChatGPTPerson] = None):
         self.rpa = ChatGPTRPA(driver, self)
-        self._current_config = self.ConfigurationTypes.DEFAULT
-        self._current_personalization = self.PersonalizationTypes.DEFAULT
+        self._current_config = config if config else ChatGPTConfigs.DEFAULT
+        self._current_personalization = person if person else ChatGPTPersons.DEFAULT
         self._personalization_enabled = enable_personalization
 
     def is_personalization_enabled(self):
@@ -279,13 +279,13 @@ class ChatGPT:
     def enable_personalization(self, enable: bool):
         self._personalization_enabled = enable
 
-    def set_personalization(self, persona_type: PersonalizationTypes):
+    def set_personalization(self, persona_type: ChatGPTPerson):
         self._current_personalization = persona_type
 
     def get_current_personalization(self):
         return self._current_personalization
 
-    def set_config(self, config_type: ConfigurationTypes):
+    def set_config(self, config_type: ChatGPTConfig):
         """Установить текущую конфигурацию."""
         self._current_config = config_type
 

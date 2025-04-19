@@ -1,7 +1,8 @@
 from enum import Enum
+from typing import Optional
 
 
-class ChatGPTPersonalization:
+class ChatGPTPerson:
 
     def __init__(self, values: dict):
         self.user_name = values.get("user_name") or None
@@ -23,8 +24,8 @@ class ChatGPTPersonalization:
             """
 
 
-class BasePersonalizationTypes(Enum):
-    PY_SENIOR = ChatGPTPersonalization({
+class ChatGPTPersons(Enum):
+    PY_SENIOR = ChatGPTPerson({
         "user_name": "Даниил",
         "user_position": "Программист Python",
         "ai_response_length": 100,
@@ -32,7 +33,7 @@ class BasePersonalizationTypes(Enum):
         "ai_job": "Помогать советами и подсказывать идеи реализации"
     })
 
-    DUMB = ChatGPTPersonalization({
+    DUMB = ChatGPTPerson({
         "user_name": "Даниил",
         "user_position": "Программист Python",
         "ai_response_length": 100,
@@ -40,7 +41,7 @@ class BasePersonalizationTypes(Enum):
         "ai_job": "Строго отвечать 'i am dumb' в любом сообщении, без лишних слов"
     })
 
-    HTML_FORMATTER = ChatGPTPersonalization({
+    HTML_FORMATTER = ChatGPTPerson({
         "user_name": "Даниил",
         "user_position": "Программист Python",
         "ai_response_length": 100,
@@ -51,3 +52,10 @@ class BasePersonalizationTypes(Enum):
     # Здесь добавлять новые персоны
 
     DEFAULT = PY_SENIOR
+
+
+def get_person(name) -> Optional[ChatGPTPerson]:
+    if hasattr(ChatGPTPersons, name):
+        return getattr(ChatGPTPersons, name)
+    else:
+        return None

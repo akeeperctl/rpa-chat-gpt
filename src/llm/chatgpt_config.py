@@ -32,6 +32,7 @@ BASE_SELECTOR_KEYS = [
     "send_button_sel",
     "stop_button_sel",
     "assistant_msg_sel",
+    "assistant_msg_error_sel",
     "login_checkbox_sel",
     "login_button_sel",
     "login_sel",
@@ -64,39 +65,42 @@ register_config(ChatGPTConfig(
         "send_button_sel": "//button[@class='btn-send-message']",
         "stop_button_sel": "//button[@class='btn-stop-response']",
         "assistant_msg_sel": "//div[@class='chat-box ai-completed']//div[@class='message-completed']",
+        "assistant_msg_error_sel": "//div[@class='chat-box ai-completed']//div[contains(@class, 'message-error')]",
         "new_chat_sel": "//button[contains(@class, 'btn-new-chat')]",
     },
     flags=ChatGPTFlags.START_NEW_CHAT
 ))
 
-register_config(ChatGPTConfig(
-    name="DEEPSEEK",
-    main_page="https://chat.deepseek.com/",
-    login_page="https://chat.deepseek.com/sign_in",
-    selectors={
-        "text_area_sel": "//textarea[@id='chat-input']",
-        "send_button_sel": "//div[@role='button' and contains(@class, 'f6d670')]",
-        "stop_button_sel": "//div[@role='button' and @class='f6d670']",
-        "assistant_msg_sel": "//div[contains(@class, 'f9bf7997')]",
-        "login_checkbox_sel": "//div[contains(@class, 'ds-checkbox--none')]",
-        "login_button_sel": "//div[text()='Log in']",
-        "login_sel": "//input[@type='text']",
-        "password_sel": "//input[@type='password']",
-    },
-))
+# генерируются номера классов, нерентабельно
+# register_config(ChatGPTConfig(
+#     name="DEEPSEEK",
+#     main_page="https://chat.deepseek.com/",
+#     login_page="https://chat.deepseek.com/sign_in",
+#     selectors={
+#         "text_area_sel": "//textarea[@id='chat-input']",
+#         "send_button_sel": "//div[@role='button' and contains(@class, '_7436101')]",
+#         "stop_button_sel": "//div[@role='button' and @class='_7436101']",
+#         "assistant_msg_sel": "//div[contains(@class, 'f9bf7997')]",
+#         "login_checkbox_sel": "//div[contains(@class, 'ds-checkbox--none')]",
+#         "login_button_sel": "//div[text()='Log in']",
+#         "login_sel": "//input[@type='text']",
+#         "password_sel": "//input[@type='password']",
+#     },
+# ))
 
-register_config(ChatGPTConfig(
-    name="RUGPT",
-    main_page="https://rugpt.io/",
-    selectors={
-        "text_area_sel": "//textarea[contains(@class, 'chatInputTextarea')]",
-        "send_button_sel": "//button[contains(@class, 'TextChatControls_chatInput__btn')]",
-        "stop_button_sel": "//button[contains(@class, 'addChatButton') and @disabled]",
-        "assistant_msg_sel": "//li[contains(@class, 'ChatItem_chatItem') and not(contains(@class, 'ChatItem_user'))]",
-        "new_chat_sel": "//button[contains(@class, 'addChatButton')]"
-    },
-    flags=ChatGPTFlags.START_NEW_CHAT
-))
+# Куча блокировок, нерентабельно
+# register_config(ChatGPTConfig(
+#     name="RUGPT",
+#     main_page="https://rugpt.io/",
+#     selectors={
+#         "text_area_sel": "//textarea[contains(@class, 'chatInputTextarea')]",
+#         "send_button_sel": "//span[contains(normalize-space(), 'Отправить')]",
+#         "stop_button_sel": "//button[contains(@class, 'addChatButton') and @disabled]",
+#         "assistant_msg_sel": "//li[@class]//div[contains(@class, '_chatItem__message__') and not(contains(@class, '_user_'))]/div[contains(@class, 'markdown')]",
+#         "new_chat_sel": "//button[contains(@class, 'addChatButton')]"
+#     },
+#     flags=ChatGPTFlags.START_NEW_CHAT
+# ))
 
 register_config(ChatGPTConfig(
     name="BLACKBOX",
@@ -109,16 +113,17 @@ register_config(ChatGPTConfig(
     }
 ))
 
-register_config(ChatGPTConfig(
-    name="TRYCHATGPT",
-    main_page="https://trychatgpt.ru/",
-    selectors={
-        "text_area_sel": "//textarea[@id='input']",
-        "send_button_sel": "//button[@id='send']",
-        "stop_button_sel": "//div[@class='typing-wave']",
-        "assistant_msg_sel": "//div[@class='message-content']",
-    }
-))
+# Быстро меняется, нерентабельно поддерживать
+# register_config(ChatGPTConfig(
+#     name="TRYCHATGPT",
+#     main_page="https://trychatgpt.ru/",
+#     selectors={
+#         "text_area_sel": "//textarea[@placeholder='Введите сообщение']",
+#         "send_button_sel": "//div[contains(@class, 'bottom-0 right-0')]//button",
+#         "stop_button_sel": "//div[@class='typing-wave']",
+#         "assistant_msg_sel": "//div[@class='message-content']",
+#     }
+# ))
 
 # Default config aliasing CHATAPP
 _def_config = _CONFIG_REGISTRY["CHATAPP"]

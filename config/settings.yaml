@@ -4,8 +4,8 @@ chatgpt:
   logging:
     enabled: 0
 
-  configuration:
     name: "CHATAPP"
+  config:
 
-  personalization:
+  person:
     name: "DEFAULT"

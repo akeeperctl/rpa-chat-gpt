@@ -21,7 +21,7 @@ class ChatGPTRPA:
 
     async def _is_ready(self):
         link = await self._driver.current_url
-        cfg = self._gpt.get_current_config()
+        cfg = self._gpt.get_config()
 
         if cfg.main_page not in link:
             LOGGER.warning(f"Драйвер не находится на странице ИИ-ассистента! Тек. страница: {link}")
@@ -30,7 +30,7 @@ class ChatGPTRPA:
 
     async def _pass_thanks_window(self):
         await self._is_ready()
-        cfg = self._gpt.get_current_config()
+        cfg = self._gpt.get_config()
         thanks_sel = cfg.selectors.get('thanks_dialog_sel')
         cancel_sel = ".//a[text()='Не входить']"
 
@@ -46,7 +46,7 @@ class ChatGPTRPA:
         if self._authorized:
             return True
 
-        cfg = self._gpt.get_current_config()
+        cfg = self._gpt.get_config()
         creds = settings.chatgpt[cfg.name]
         login, password = creds.login, creds.password
 
@@ -83,7 +83,7 @@ class ChatGPTRPA:
         return self._authorized
 
     async def new_chat(self):
-        cfg = self._gpt.get_current_config()
+        cfg = self._gpt.get_config()
         new_sel = cfg.selectors.get('new_chat_sel')
         if not new_sel:
             return False
@@ -96,31 +96,44 @@ class ChatGPTRPA:
             return False
 
     async def open_main_page(self, timeout=30):
-        cfg = self._gpt.get_current_config()
+        cfg = self._gpt.get_config()
         timer = timeout
         text_area: Optional[WebElementEx] = None
 
-        while True:
-            try:
-                await self._driver.get(cfg.main_page)
-                # TODO: если нужна авторизация перенаправлением
+        # while True:
+        #     try:
+        #         await self._driver.get(cfg.main_page)
+        #         await self._driver.scroll_to_location(0, 100)
+        #
+        #         # TODO: если нужна авторизация перенаправлением
+        #
+        #         text_area = await self._driver.find_element(
+        #             By.XPATH, cfg.selectors['text_area_sel'], timeout=10)
+        #
+        #         if cfg.flags & ChatGPTFlags.START_NEW_CHAT:
+        #             await self.new_chat()
+        #         break
+        #     except NoSuchElementException:
+        #         LOGGER.warning("ChatGPT: Не могу найти поле для ввода! Обновляю страницу...")
+        #         await self._driver.refresh()
+        #         timer -= 1
+        #         if text_area or timer <= 0:
+        #             break
+        #         await asyncio.sleep(1)
+        #     except Exception:
+        #         LOGGER.error("ChatGPT: Ошибка при открытии главной страницы.", exc_info=True)
+        #         return False
 
-                text_area = await self._driver.find_element(
-                    By.XPATH, cfg.selectors['text_area_sel'], timeout=0)
+        await self._driver.get(cfg.main_page)
+        await self._driver.scroll_to_location(0, 100)
 
-                if cfg.flags & ChatGPTFlags.START_NEW_CHAT:
-                    await self.new_chat()
-                break
-            except NoSuchElementException:
-                LOGGER.warning("ChatGPT: Не могу найти поле для ввода! Обновляю страницу...")
-                await self._driver.refresh()
-                timer -= 1
-                if text_area or timer <= 0:
-                    break
-                await asyncio.sleep(1)
-            except Exception:
-                LOGGER.error("ChatGPT: Ошибка при открытии главной страницы.", exc_info=True)
-                return False
+        # TODO: если нужна авторизация перенаправлением
+
+        text_area = await self._driver.find_element(
+            By.XPATH, cfg.selectors['text_area_sel'], timeout=10)
+
+        if cfg.flags & ChatGPTFlags.START_NEW_CHAT:
+            await self.new_chat()
 
         return bool(text_area)
 
@@ -128,26 +141,24 @@ class ChatGPTRPA:
         await self._is_ready()
         await self._pass_thanks_window()
 
-        cfg = self._gpt.get_current_config()
+        cfg = self._gpt.get_config()
         if self._gpt.is_personalization_enabled():
-            person = self._gpt.get_current_personalization()
+            person = self._gpt.get_person()
             prefix = person.build_prompt()
             value = (prefix + value).replace("\n", "")
 
-        try:
-            text_area = await self._driver.find_element(By.XPATH, cfg.selectors['text_area_sel'])
-            await text_area.write(value)
-            if not await text_area.send_keyboard_event("keydown", "Enter"):
-                btn = await self._driver.find_element(By.XPATH, cfg.selectors['send_button_sel'])
-                await btn.click()
-        except NoSuchElementException:
-            LOGGER.error("ChatGPT: Ошибка при отправке промта.", exc_info=True)
+        text_area = await self._driver.find_element(By.XPATH, cfg.selectors['text_area_sel'])
+        await text_area.write(value)
+        await text_area.send_keyboard_event("keydown", "Enter")
+
+        btn = await self._driver.find_element(By.XPATH, cfg.selectors['send_button_sel'])
+        await btn.click()
 
     async def get_last_response(self, start_delay=5, timer=30):
         await self._is_ready()
         await self._pass_thanks_window()
 
-        cfg = self._gpt.get_current_config()
+        cfg = self._gpt.get_config()
         current_timer = timer
         response = None
 
@@ -162,20 +173,31 @@ class ChatGPTRPA:
             except (StaleElementReferenceException, NoSuchElementException):
                 pass
 
+            # Поиск сообщения об ошибке
             try:
-                elements = await self._driver.find_elements(By.XPATH, cfg.selectors['assistant_msg_sel'], 0)
+                msg_error = cfg.selectors.get("assistant_msg_error_sel", None)
+                if msg_error:
+                    element = await self._driver.find_element(By.XPATH, msg_error, timeout=3)
+                    response = (await element.text).strip()
+                    return response
+            except NoSuchElementException:
+                pass
+
+            # Поиск последнего сообщения от ИИ
+            try:
+                elements = await self._driver.find_elements(By.XPATH, cfg.selectors['assistant_msg_sel'], 1)
                 response = elements[-1] if elements else None
             except Exception:
                 LOGGER.warning("ChatGPT: Не удалось найти ответ.")
             finally:
                 current_timer -= 1
                 if response or current_timer <= 0:
+                    if response:
+                        LOGGER.debug("ChatGPT: Ответ получен!")
+                        return (await response.text).strip()
                     break
                 await asyncio.sleep(1)
 
-        if response:
-            LOGGER.debug("ChatGPT: Ответ получен!")
-            return (await response.text).strip()
         LOGGER.debug("ChatGPT: Ответ не получен!")
         return None
 
@@ -196,12 +218,12 @@ class ChatGPT:
     def enable_personalization(self, enable: bool):
         self._personalization_enabled = enable
 
-    def set_personalization(self, name: str):
+    def set_person(self, name: str):
         person = chatgpt_person.get_person(name)
         if person:
             self._current_personalization = person
 
-    def get_current_personalization(self) -> chatgpt_person.ChatGPTPerson:
+    def get_person(self) -> chatgpt_person.ChatGPTPerson:
         return self._current_personalization
 
     def set_config(self, name: str):
@@ -209,5 +231,5 @@ class ChatGPT:
         if config:
             self._current_config = config
 
-    def get_current_config(self) -> chatgpt_config.ChatGPTConfig:
+    def get_config(self) -> chatgpt_config.ChatGPTConfig:
         return self._current_config

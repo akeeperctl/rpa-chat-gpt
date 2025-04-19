@@ -83,7 +83,7 @@ class BaseConfigurationTypes(Enum):
             "text_area_sel": "//textarea[@id='chat-input']",
             "send_button_sel": "//button[@class='btn-send-message']",
             "stop_button_sel": "//button[@class='btn-stop-response']",
-            "assistant_msg_sel": "//div[@class='chat-box ai-completed']",
+            "assistant_msg_sel": "//div[@class='chat-box ai-completed']//div[@class='message-completed']",
 
             "new_chat_sel": "//button[contains(@class, 'btn-new-chat')]",
         },
